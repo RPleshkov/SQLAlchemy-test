@@ -1,5 +1,5 @@
 import asyncio
-from sqlalchemy import String, and_, between, select, text
+from sqlalchemy import String, and_, between, desc, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -114,6 +114,51 @@ async def main():
         # print(result.all())
 
         stmt = select(Film).where(and_(between(Film.id, 1, 5), Film.running_time > 100))
+        result = await session.execute(stmt)
+        # print(result.all())
+
+        stmt = (
+            select(Film.title, Film.director, Film.release_year)
+            .where(and_(Film.director == "John Lasseter", Film.release_year < 2000))
+            .order_by(Film.release_year)
+        )
+        result = await session.execute(stmt)
+        # print(result.all())
+
+        stmt = (
+            select(Film.title, Film.release_year)
+            .where(Film.release_year.in_([1999, 2009]))
+            .order_by(desc(Film.release_year))
+        )
+        result = await session.execute(stmt)
+        # print(result.all())
+
+        stmt = (
+            select(Film.title, Film.running_time)
+            .where(or_(Film.running_time < 100, Film.running_time > 100))
+            .order_by(desc(Film.running_time))
+        )
+        result = await session.execute(stmt)
+        # print(result.all())
+
+        stmt = (
+            select(Film.title, Film.director, Film.running_time)
+            .where(
+                and_(
+                    Film.director.in_(["John Lasseter", "Andrew Stanton"]),
+                    Film.running_time > 100,
+                )
+            )
+            .order_by(Film.director, Film.title)
+        )
+        result = await session.execute(stmt)
+        # print(result.all())
+
+        stmt = (
+            select(Film.title, Film.director, Film.release_year)
+            .where(Film.release_year.notin_([2004, 2008, 2012]))
+            .order_by(Film.director, desc(Film.release_year))
+        )
         result = await session.execute(stmt)
         print(result.all())
 
