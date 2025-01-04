@@ -1,7 +1,7 @@
 import asyncio
 from datetime import date
 
-from sqlalchemy import Date, String, text
+from sqlalchemy import Date, String, select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -25,6 +25,12 @@ class Film(Base):
     director: Mapped[str] = mapped_column(String(20))
     release_year: Mapped[int] = mapped_column()
 
+    def __iter__(self):
+        return iter([self.id, self.title, self.director, self.release_year])
+
+    def __next__(self):
+        yield from self
+
 
 async def main():
 
@@ -41,6 +47,40 @@ async def main():
     async with sessionmaker() as session:
         session.add_all([film1, film2, film3, film4, film5])
         await session.commit()
+
+    async with sessionmaker() as session:
+        stmt = select(Film.title)
+        result = await session.execute(stmt)
+        print(result.all())
+
+    async with sessionmaker() as session:
+        stmt = select(Film.release_year, Film.title)
+        result = await session.execute(stmt)
+        print(result.all())
+
+    async with sessionmaker() as session:
+        # stmt = select("*").select_from(Film)
+        stmt = select(Film)
+        result = await session.execute(stmt)
+        for i in result.scalars():
+            print(*i)
+
+    async with sessionmaker() as session:
+        stmt = select(Film.director)
+        result = await session.execute(stmt)
+        print(result.unique().all())
+
+    async with sessionmaker() as session:
+        stmt = select(Film).limit(3)
+        result = await session.execute(stmt)
+        for film in result.scalars():
+            print(*film)
+
+    async with sessionmaker() as session:
+        stmt = select(Film).limit(10).offset(1)
+        result = await session.execute(stmt)
+        for film in result.scalars():
+            print(*film)
 
 
 asyncio.run(main())
